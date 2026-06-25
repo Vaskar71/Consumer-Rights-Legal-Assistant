@@ -8,7 +8,12 @@ from langchain_classic.chains.combine_documents import create_stuff_documents_ch
 from langchain_core.prompts import ChatPromptTemplate
 import streamlit as st
 
-load_dotenv()
+# Resolve paths relative to the project root (consumer-rights-app/), not the working directory.
+# This is critical: deployed environments (Codespaces, Streamlit Cloud) may run
+# `streamlit run consumer-rights-app/app.py` from the REPO root, not from inside the app dir.
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+load_dotenv(os.path.join(PROJECT_ROOT, ".env"))
 
 SYSTEM_PROMPT = """You are a consumer rights assistant specializing in Bangladesh's Consumer Rights Protection Act (CRPA) 2009. Your personality is warm, clear, and approachable — like a knowledgeable friend who explains complex legal concepts in simple everyday language.
 
@@ -65,7 +70,7 @@ def _build_rag_chain():
         model_name="paraphrase-multilingual-MiniLM-L12-v2"
     )
     vectorstore = Chroma(
-        persist_directory="chroma_db",
+        persist_directory=os.path.join(PROJECT_ROOT, "chroma_db"),
         embedding_function=embeddings
     )
     retriever = vectorstore.as_retriever(search_kwargs={"k": 4})

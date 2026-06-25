@@ -5,8 +5,10 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores import Chroma
 
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
 def ingest_knowledge_base():
-    pdf_files = glob.glob("knowledge_base/*.pdf")
+    pdf_files = glob.glob(os.path.join(PROJECT_ROOT, "knowledge_base", "*.pdf"))
     
     if not pdf_files:
         print("No PDF files found in knowledge_base directory.")
@@ -39,7 +41,7 @@ def ingest_knowledge_base():
     vectorstore = Chroma.from_documents(
         documents=all_chunks,
         embedding=embeddings,
-        persist_directory="chroma_db"
+        persist_directory=os.path.join(PROJECT_ROOT, "chroma_db")
     )
     vectorstore.persist()
     print(f"Successfully ingested {len(all_chunks)} chunks from {len(pdf_files)} files into ChromaDB.")
