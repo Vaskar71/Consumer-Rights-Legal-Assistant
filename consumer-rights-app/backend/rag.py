@@ -46,7 +46,7 @@ Respond in this friendly, structured format:
 [For each applicable CRPA section found in the retrieved text above:]
 
 **[Full Name of the Act], Section [X] — [Give it a plain English name, e.g. "Right to receive what you paid for"]**
-What the law says: [Explain this section in 1-2 sentences as if talking to someone who has never read a law before. No jargon.]
+What the law says: [Explain this section in 4-5 sentences as if talking to someone who has never read a law before. No jargon.]
 How it applies to you: [Map this directly to the user's specific situation using their own words — product name, seller, amount, dates if mentioned.]
 
 [If no violation is found in the retrieved text:]
