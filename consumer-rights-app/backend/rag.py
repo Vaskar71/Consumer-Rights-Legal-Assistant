@@ -6,6 +6,7 @@ from langchain_groq import ChatGroq
 from langchain_classic.chains import create_retrieval_chain
 from langchain_classic.chains.combine_documents import create_stuff_documents_chain
 from langchain_core.prompts import ChatPromptTemplate
+import streamlit as st
 
 load_dotenv()
 
@@ -69,9 +70,23 @@ def _build_rag_chain():
     )
     retriever = vectorstore.as_retriever(search_kwargs={"k": 4})
 
+    api_key = os.environ.get("GROQ_API_KEY")
+    if not api_key:
+        try:
+            api_key = st.secrets["GROQ_API_KEY"]
+        except Exception:
+            pass
+            
+    model_name = os.environ.get("GROQ_TEXT_MODEL")
+    if not model_name:
+        try:
+            model_name = st.secrets["GROQ_TEXT_MODEL"]
+        except Exception:
+            model_name = "llama-3.3-70b-versatile"
+
     llm = ChatGroq(
-        model=os.getenv("GROQ_TEXT_MODEL", "llama-3.3-70b-versatile"),
-        api_key=os.getenv("GROQ_API_KEY"),
+        model=model_name,
+        api_key=api_key,
         temperature=0.1,
     )
 

@@ -4,6 +4,7 @@ import io
 from groq import Groq
 from PIL import Image
 from dotenv import load_dotenv
+import streamlit as st
 
 load_dotenv()
 
@@ -24,7 +25,14 @@ If the image is unclear or unreadable, say so explicitly."""
 
 def describe_image(uploaded_file) -> str:
     """Send an image to Llama 3.2 Vision on Groq and return a detailed text description."""
-    client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+    api_key = os.environ.get("GROQ_API_KEY")
+    if not api_key:
+        try:
+            api_key = st.secrets["GROQ_API_KEY"]
+        except Exception:
+            pass
+            
+    client = Groq(api_key=api_key)
 
     # Read and encode image as base64
     image_bytes = uploaded_file.read()
@@ -53,8 +61,15 @@ def describe_image(uploaded_file) -> str:
         media_type = "image/jpeg"  # fallback
 
     try:
+        model_name = os.environ.get("GROQ_VISION_MODEL")
+        if not model_name:
+            try:
+                model_name = st.secrets["GROQ_VISION_MODEL"]
+            except Exception:
+                model_name = "qwen/qwen3.6-27b"
+
         response = client.chat.completions.create(
-            model=os.getenv("GROQ_VISION_MODEL", "qwen/qwen3.6-27b"),
+            model=model_name,
             messages=[
                 {
                     "role": "user",
