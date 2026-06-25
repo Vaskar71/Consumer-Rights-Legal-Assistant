@@ -65,7 +65,6 @@ I went through the relevant sections of the Consumer Rights Protection Act, but 
 """
 
 
-@st.cache_resource(show_spinner=False)
 def _build_rag_chain():
     embeddings = HuggingFaceEmbeddings(
         model_name="paraphrase-multilingual-MiniLM-L12-v2"

@@ -13,12 +13,57 @@ st.set_page_config(
 
 # --- Custom CSS for Polish ---
 def inject_custom_css():
-    try:
-        with open("global.css", "r") as f:
-            css = f.read()
-        st.markdown(f"<style>{css}</style>", unsafe_allow_html=True)
-    except FileNotFoundError:
-        pass
+    st.markdown("""
+        <style>
+            /* Custom styling to make it feel more premium */
+            .stChatInputContainer {
+                padding-bottom: 2rem;
+            }
+            /* Change focus border of chat input from red to white */
+            .stChatInputContainer:focus-within {
+                border-color: white !important;
+                box-shadow: 0 0 0 1px white !important;
+            }
+            /* Aggressively remove extra blank space at the top of the sidebar */
+            [data-testid="stSidebarHeader"] {
+                padding: 0 !important;
+                height: 0 !important;
+                min-height: 0 !important;
+                overflow: visible !important;
+                position: relative;
+            }
+            /* Fix the sidebar close button being cut off */
+            [data-testid="stSidebarHeader"] button {
+                position: absolute !important;
+                top: 15px !important;
+                right: 15px !important;
+                z-index: 999 !important;
+                transform: scale(0.9);
+            }
+            [data-testid="stSidebarUserContent"] {
+                padding-top: 0 !important;
+            }
+            section[data-testid="stSidebar"] > div {
+                padding-top: 0 !important;
+            }
+            .st-emotion-cache-1wmy9hl, .st-emotion-cache-6qob1r, .st-emotion-cache-12fmjuu {
+                padding-top: 0 !important;
+            }
+            /* Empty state styling */
+            .empty-state {
+                text-align: center;
+                padding: 4rem 2rem;
+                color: #666;
+                background: rgba(255, 255, 255, 0.05);
+                border-radius: 12px;
+                margin-top: 2rem;
+            }
+            .empty-state h2 {
+                font-weight: 600;
+                margin-bottom: 1rem;
+            }
+        </style>
+    """, unsafe_allow_html=True)
 
 # --- State Initialization ---
 def init_session_state():
@@ -54,7 +99,7 @@ def render_sidebar():
         
         # Process files instantly so they are ready for the chat
         if uploaded_files:
-            new_files = [f for f in uploaded_files if f"{f.name}_{f.size}" not in st.session_state.processed_files]
+            new_files = [f for f in uploaded_files if f.name not in st.session_state.processed_files]
             if new_files:
                 with st.status("Processing new evidence...", expanded=True) as status:
                     for i, f in enumerate(new_files):
@@ -66,7 +111,7 @@ def render_sidebar():
                             else:
                                 extracted = extract_text_from_file(f)
                                 st.session_state.evidence_text += f"\n--- Document Evidence: {f.name} ---\n{extracted}\n"
-                            st.session_state.processed_files.add(f"{f.name}_{f.size}")
+                            st.session_state.processed_files.add(f.name)
                         except Exception as e:
                             st.error(f"Failed to process {f.name}: {str(e)}")
                     status.update(label="Evidence processed successfully!", state="complete", expanded=False)
@@ -101,7 +146,7 @@ def render_sidebar():
                 label_visibility="collapsed"
             )
             if uploaded_tnc:
-                new_tnc_files = [f for f in uploaded_tnc if f"{f.name}_{f.size}" not in st.session_state.processed_tnc_files]
+                new_tnc_files = [f for f in uploaded_tnc if f.name not in st.session_state.processed_tnc_files]
                 if new_tnc_files:
                     with st.status("Processing T&C files...", expanded=True) as status:
                         for f in new_tnc_files:
@@ -113,7 +158,7 @@ def render_sidebar():
                                 else:
                                     extracted = extract_text_from_file(f)
                                     st.session_state.tnc_file_text += f"\n--- T&C Document: {f.name} ---\n{extracted}\n"
-                                st.session_state.processed_tnc_files.add(f"{f.name}_{f.size}")
+                                st.session_state.processed_tnc_files.add(f.name)
                             except Exception as e:
                                 st.error(f"Failed to process {f.name}: {str(e)}")
                         status.update(label="T&C files processed successfully!", state="complete", expanded=False)
@@ -141,6 +186,88 @@ def render_chat_interface():
     if not st.session_state.messages:
         with welcome_container:
             st.markdown("""
+                <style>
+                    .welcome-card {
+                        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+                        border-radius: 20px;
+                        padding: 3rem;
+                        text-align: center;
+                        margin-top: 2rem;
+                        border: 1px solid rgba(255, 255, 255, 0.08);
+                        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+                    }
+                    .welcome-badge {
+                        display: inline-block;
+                        background: rgba(99, 179, 237, 0.15);
+                        border: 1px solid rgba(99, 179, 237, 0.4);
+                        color: #63b3ed;
+                        font-size: 0.78rem;
+                        font-weight: 600;
+                        letter-spacing: 0.1em;
+                        text-transform: uppercase;
+                        padding: 0.3rem 1rem;
+                        border-radius: 999px;
+                        margin-bottom: 1.5rem;
+                    }
+                    .welcome-title {
+                        font-size: 2rem;
+                        font-weight: 700;
+                        color: #f0f4ff;
+                        margin-bottom: 0.75rem;
+                        line-height: 1.2;
+                    }
+                    .welcome-subtitle {
+                        color: #a0aec0;
+                        font-size: 1rem;
+                        max-width: 480px;
+                        margin: 0 auto 2.5rem auto;
+                        line-height: 1.6;
+                    }
+                    .feature-grid {
+                        display: grid;
+                        grid-template-columns: repeat(3, 1fr);
+                        gap: 1rem;
+                        margin: 2rem 0;
+                    }
+                    .feature-tile {
+                        background: rgba(255, 255, 255, 0.05);
+                        border: 1px solid rgba(255, 255, 255, 0.08);
+                        border-radius: 12px;
+                        padding: 1.2rem 1rem;
+                        transition: background 0.2s;
+                    }
+                    .feature-icon {
+                        font-size: 1.8rem;
+                        margin-bottom: 0.5rem;
+                    }
+                    .feature-label {
+                        color: #e2e8f0;
+                        font-size: 0.88rem;
+                        font-weight: 500;
+                        line-height: 1.4;
+                    }
+                    .example-prompt {
+                        background: rgba(255, 255, 255, 0.07);
+                        border-left: 3px solid #63b3ed;
+                        border-radius: 8px;
+                        padding: 1rem 1.25rem;
+                        text-align: left;
+                        margin-top: 2rem;
+                        color: #cbd5e0;
+                        font-size: 0.9rem;
+                        font-style: italic;
+                        line-height: 1.6;
+                    }
+                    .example-label {
+                        color: #63b3ed;
+                        font-size: 0.75rem;
+                        font-weight: 700;
+                        text-transform: uppercase;
+                        letter-spacing: 0.08em;
+                        margin-bottom: 0.4rem;
+                        font-style: normal;
+                    }
+                </style>
                 <div class="welcome-card">
                     <div class="welcome-badge">Bangladesh CRPA 2009</div>
                     <div class="welcome-title">ConsumerShield<br/>Your Rights, Explained Simply</div>
