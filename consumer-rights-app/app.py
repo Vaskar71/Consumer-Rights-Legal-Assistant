@@ -5,7 +5,7 @@ from backend.rag import analyze_case
 
 # --- Page Config ---
 st.set_page_config(
-    page_title="Consumer Rights Assistant — Bangladesh",
+    page_title="ConsumerShield — Bangladesh",
     page_icon="⚖️",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -79,7 +79,7 @@ def init_session_state():
 # --- Sidebar Components ---
 def render_sidebar():
     with st.sidebar:
-        st.title("⚖️ Legal Assistant")
+        st.title("🛡️ ConsumerShield")
         st.caption("Bangladesh CRPA 2009 Analysis")
         
         st.divider()
@@ -232,7 +232,7 @@ def render_chat_interface():
                 </style>
                 <div class="welcome-card">
                     <div class="welcome-badge">Bangladesh CRPA 2009</div>
-                    <div class="welcome-title">Your Consumer Rights,<br/>Explained Simply</div>
+                    <div class="welcome-title">ConsumerShield<br/>Your Rights, Explained Simply</div>
                     <div class="welcome-subtitle">
                         Describe what happened with a seller or product. I will look up the relevant laws and explain your rights in plain language — no legal jargon.
                     </div>

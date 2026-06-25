@@ -1,4 +1,4 @@
-# Technical Brief v2 — Consumer Rights Legal Assist (Bangladesh)
+# Technical Brief v2 — ConsumerShield (Bangladesh)
 ## Build a working prototype using RAG + Grotanq + Streamlit
 
 ---
@@ -353,12 +353,12 @@ from backend.vision import describe_image
 from backend.rag import analyze_case
 
 st.set_page_config(
-    page_title="Consumer Rights Assistant — Bangladesh",
+    page_title="ConsumerShield — Bangladesh",
     page_icon="⚖️",
     layout="centered"
 )
 
-st.title("⚖️ Consumer Rights Legal Assistant")
+st.title("🛡️ ConsumerShield")
 st.caption("Bangladesh — Based on the Consumer Rights Protection Act 2009")
 st.info(
     "This tool provides **legal information only** based on the CRPA 2009. "
