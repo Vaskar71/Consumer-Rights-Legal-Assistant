@@ -71,10 +71,14 @@ def init_session_state():
         st.session_state.messages = []
     if "evidence_text" not in st.session_state:
         st.session_state.evidence_text = ""
-    if "tnc_text" not in st.session_state:
-        st.session_state.tnc_text = ""
+    if "tnc_pasted_text" not in st.session_state:
+        st.session_state.tnc_pasted_text = ""
+    if "tnc_file_text" not in st.session_state:
+        st.session_state.tnc_file_text = ""
     if "processed_files" not in st.session_state:
         st.session_state.processed_files = set()
+    if "processed_tnc_files" not in st.session_state:
+        st.session_state.processed_tnc_files = set()
 
 # --- Sidebar Components ---
 def render_sidebar():
@@ -119,15 +123,47 @@ def render_sidebar():
         st.divider()
         
         st.subheader("📜 Terms & Conditions")
-        st.caption("Optional: Paste seller policies to check for breaches.")
-        tnc_input = st.text_area(
-            "Paste T&C text",
-            height=150,
-            placeholder="Paste Daraz, Shajgoj, or seller T&C here...",
-            label_visibility="collapsed"
-        )
-        if tnc_input != st.session_state.tnc_text:
-            st.session_state.tnc_text = tnc_input
+        st.caption("Optional: Provide seller policies to check for breaches.")
+        
+        tnc_tab1, tnc_tab2 = st.tabs(["Paste Text", "Upload File(s)"])
+        
+        with tnc_tab1:
+            tnc_input = st.text_area(
+                "Paste T&C text",
+                height=150,
+                placeholder="Paste Daraz, Shajgoj, or seller T&C here...",
+                label_visibility="collapsed"
+            )
+            if tnc_input != st.session_state.tnc_pasted_text:
+                st.session_state.tnc_pasted_text = tnc_input
+
+        with tnc_tab2:
+            uploaded_tnc = st.file_uploader(
+                "Upload T&C documents",
+                accept_multiple_files=True,
+                type=["pdf", "png", "jpg", "jpeg", "docx", "txt", "webp"],
+                key="tnc_uploader",
+                label_visibility="collapsed"
+            )
+            if uploaded_tnc:
+                new_tnc_files = [f for f in uploaded_tnc if f.name not in st.session_state.processed_tnc_files]
+                if new_tnc_files:
+                    with st.status("Processing T&C files...", expanded=True) as status:
+                        for f in new_tnc_files:
+                            st.write(f"Analyzing {f.name}...")
+                            try:
+                                if is_image(f.name):
+                                    desc = describe_image(f)
+                                    st.session_state.tnc_file_text += f"\n--- T&C Image: {f.name} ---\n{desc}\n"
+                                else:
+                                    extracted = extract_text_from_file(f)
+                                    st.session_state.tnc_file_text += f"\n--- T&C Document: {f.name} ---\n{extracted}\n"
+                                st.session_state.processed_tnc_files.add(f.name)
+                            except Exception as e:
+                                st.error(f"Failed to process {f.name}: {str(e)}")
+                        status.update(label="T&C files processed successfully!", state="complete", expanded=False)
+                if st.session_state.processed_tnc_files:
+                    st.success(f"{len(st.session_state.processed_tnc_files)} T&C files loaded.")
 
         st.divider()
         st.warning("⚠️ **Disclaimer:** This tool provides legal information, not legal advice.")
@@ -135,8 +171,10 @@ def render_sidebar():
         if st.button("🗑️ Clear Chat & Data", use_container_width=True):
             st.session_state.messages = []
             st.session_state.evidence_text = ""
-            st.session_state.tnc_text = ""
+            st.session_state.tnc_pasted_text = ""
+            st.session_state.tnc_file_text = ""
             st.session_state.processed_files = set()
+            st.session_state.processed_tnc_files = set()
             st.rerun()
 
 # --- Main Chat Interface ---
@@ -279,7 +317,7 @@ def render_chat_interface():
                     response = analyze_case(
                         description=prompt,
                         evidence_text=st.session_state.evidence_text,
-                        tnc_text=st.session_state.tnc_text
+                        tnc_text=st.session_state.tnc_pasted_text + "\n" + st.session_state.tnc_file_text
                     )
                     st.markdown(response)
                     st.session_state.messages.append({"role": "assistant", "content": response})
