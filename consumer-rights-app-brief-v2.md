@@ -1,5 +1,5 @@
-# Technical Brief v2 — Consumer Rights Legal Assistant (Bangladesh)
-## Build a working prototype using RAG + Groq + Streamlit
+# Technical Brief v2 — Consumer Rights Legal Assist (Bangladesh)
+## Build a working prototype using RAG + Grotanq + Streamlit
 
 ---
 

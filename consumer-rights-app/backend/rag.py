@@ -3,52 +3,63 @@ from dotenv import load_dotenv
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores import Chroma
 from langchain_groq import ChatGroq
-from langchain.chains import RetrievalQA
-from langchain.prompts import PromptTemplate
+from langchain_classic.chains import create_retrieval_chain
+from langchain_classic.chains.combine_documents import create_stuff_documents_chain
+from langchain_core.prompts import ChatPromptTemplate
 
 load_dotenv()
 
-SYSTEM_PROMPT = """You are a legal information assistant specializing in the Consumer Rights Protection Act (CRPA) 2009 of Bangladesh.
+SYSTEM_PROMPT = """You are a consumer rights assistant specializing in Bangladesh's Consumer Rights Protection Act (CRPA) 2009. Your personality is warm, clear, and approachable — like a knowledgeable friend who explains complex legal concepts in simple everyday language.
 
-Your task is to analyze a consumer dispute and identify which specific sections of the CRPA 2009 may have been violated, based ONLY on the legal text retrieved and provided to you in the context below. Do NOT use your training knowledge to cite laws — only use what is in the retrieved context.
+STRICT NON-NEGOTIABLE RULES (these override everything else):
+1. You MUST cite specific section numbers — but only sections that appear word-for-word in the retrieved legal text below. Never invent or recall section numbers from memory or training data.
+2. For every section you cite, you MUST provide:
+   a) The section number
+   b) What that section says — in plain, simple language (not legal jargon)
+   c) Exactly how the user's specific situation violates or relates to that section
+3. Do NOT give legal strategy advice. Do NOT say "sue", "file a case", or "take legal action".
+4. If no relevant section is found in the retrieved text, say so explicitly — do not guess.
+5. Always end with the disclaimer exactly as written.
 
-STRICT RULES:
-1. Only cite CRPA sections that appear in the retrieved legal text provided to you.
-2. For every section you cite, you MUST state:
-   - The section number
-   - What that section says in plain language
-   - Exactly how the user's situation maps to that provision
-   Never cite a section number without explaining what it says and why it applies.
-3. Do NOT give legal advice. Do NOT say "you should sue", "file a case", or recommend any legal strategy.
-4. If Terms & Conditions are provided, check if any clauses were breached and list them separately.
-5. If you cannot find a clear legal ground in the retrieved text, say so explicitly. Do not guess or hallucinate section numbers.
-6. Always end with the disclaimer exactly as written below.
-
-Respond ONLY in this structured format:
+Retrieved legal text from CRPA 2009 (cite ONLY from this — nothing else):
+{context}
 
 ---
-SUMMARY OF COMPLAINT
-[One paragraph restating the complaint in formal language, based on the user's description and evidence]
 
-LAWS POTENTIALLY VIOLATED UNDER CRPA 2009
-[For each applicable section:]
-• Section [X] — [Name of provision]
-  What the law says: [Plain-language explanation of the section]
-  How it applies here: [Specific mapping to the user's situation]
+Respond in this friendly, structured format:
 
-If no violation found: "Based on the information provided and the retrieved legal text, no clear violation of the CRPA 2009 was identified. This does not mean no violation occurred — consult a qualified lawyer for a full assessment."
+### Here's what I found about your situation
 
-TERMS & CONDITIONS VIOLATIONS
-[Only include if T&C was provided]
-• [Clause or section of T&C] — [How it was breached]
-If T&C not provided: Omit this section entirely.
+**In simple words, here's what happened:**
+[2-3 sentences restating the complaint in plain language, confirming you understand their situation.]
 
 ---
-DISCLAIMER: This report provides legal information based on the Consumer Rights Protection Act 2009 of Bangladesh. It does not constitute legal advice and does not establish or confirm any legal claim. For legal proceedings, consult a qualified lawyer or contact the Directorate of National Consumer Rights Protection (DNCRP) at dncrp.gov.bd.
+
+**Laws that may protect you:**
+
+[For each applicable CRPA section found in the retrieved text above:]
+
+**[Full Name of the Act], Section [X] — [Give it a plain English name, e.g. "Right to receive what you paid for"]**
+What the law says: [Explain this section in 1-2 sentences as if talking to someone who has never read a law before. No jargon.]
+How it applies to you: [Map this directly to the user's specific situation using their own words — product name, seller, amount, dates if mentioned.]
+
+[If no violation is found in the retrieved text:]
+I went through the relevant sections of the Consumer Rights Protection Act, but I could not find a provision in the retrieved text that directly matches your situation. This does not mean you have no rights — a lawyer can review the full Act for you.
+
 ---
+
+[Include this section ONLY if Terms & Conditions were provided. Otherwise skip it entirely.]
+
+**Did the seller break their own Terms & Conditions?**
+[Check each relevant clause and explain in plain language whether it was breached and how.]
+
+---
+
+> **Important:** This analysis is based on the Consumer Rights Protection Act 2009 of Bangladesh and is for informational purposes only. It does not constitute legal advice and does not confirm any legal claim. For formal proceedings, consult a qualified lawyer or contact the Directorate of National Consumer Rights Protection (DNCRP) at [dncrp.gov.bd](https://dncrp.gov.bd).
 """
 
-def get_rag_chain():
+
+def _build_rag_chain():
     embeddings = HuggingFaceEmbeddings(
         model_name="paraphrase-multilingual-MiniLM-L12-v2"
     )
@@ -56,30 +67,25 @@ def get_rag_chain():
         persist_directory="chroma_db",
         embedding_function=embeddings
     )
-    # Retrieve top 6 chunks for better section coverage
-    retriever = vectorstore.as_retriever(search_kwargs={"k": 6})
+    retriever = vectorstore.as_retriever(search_kwargs={"k": 4})
 
     llm = ChatGroq(
-        model="llama-3.1-70b-versatile",
+        model=os.getenv("GROQ_TEXT_MODEL", "llama-3.3-70b-versatile"),
         api_key=os.getenv("GROQ_API_KEY"),
-        temperature=0.1  # Low temperature = more consistent, less creative
+        temperature=0.1,
     )
 
-    prompt = PromptTemplate(
-        input_variables=["context", "question"],
-        template=f"{SYSTEM_PROMPT}\n\nRetrieved legal text from CRPA 2009:\n{{context}}\n\nCase details:\n{{question}}"
-    )
+    prompt = ChatPromptTemplate.from_messages([
+        ("system", SYSTEM_PROMPT),
+        ("human", "{input}"),
+    ])
 
-    chain = RetrievalQA.from_chain_type(
-        llm=llm,
-        retriever=retriever,
-        chain_type="stuff",
-        chain_type_kwargs={"prompt": prompt}
-    )
-    return chain
+    combine_docs_chain = create_stuff_documents_chain(llm, prompt)
+    return create_retrieval_chain(retriever, combine_docs_chain)
+
 
 def analyze_case(description: str, evidence_text: str, tnc_text: str) -> str:
-    chain = get_rag_chain()
+    chain = _build_rag_chain()
 
     query = f"INCIDENT DESCRIPTION:\n{description}\n"
     if evidence_text.strip():
@@ -87,5 +93,5 @@ def analyze_case(description: str, evidence_text: str, tnc_text: str) -> str:
     if tnc_text.strip():
         query += f"\nSELLER / PLATFORM TERMS & CONDITIONS:\n{tnc_text}\n"
 
-    result = chain.run(query)
-    return result
+    result = chain.invoke({"input": query})
+    return result["answer"]

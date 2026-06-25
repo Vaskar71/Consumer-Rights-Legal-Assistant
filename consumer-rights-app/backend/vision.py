@@ -54,7 +54,7 @@ def describe_image(uploaded_file) -> str:
 
     try:
         response = client.chat.completions.create(
-            model="llama-3.2-11b-vision-preview",
+            model=os.getenv("GROQ_VISION_MODEL", "qwen/qwen3.6-27b"),
             messages=[
                 {
                     "role": "user",
